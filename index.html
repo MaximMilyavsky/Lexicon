@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>לימוד מילים בעברית</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f4f8;
+      margin: 0;
+      padding: 0;
+      direction: rtl;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    h1, h2, h3 {
+      text-align: center;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: bold;
+      border: none;
+      background: #1976d2;
+      color: #fff;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #12579b;
+    }
+
+    .btn-secondary {
+      background: #eeeeee;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #d5d5d5;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .option-btn {
+      text-align: right;
+    }
+
+    .option-btn.correct {
+      background: #c8e6c9;
+    }
+
+    .option-btn.incorrect {
+      background: #ffcdd2;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .word-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .feedback {
+      font-size: 18px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .mistake-card {
+      border-top: 1px solid #eee;
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+
+    .mistake-card img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .question-header {
+        flex-direction: column;
+        gap: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>לימוד מילים בעברית</h1>
+
+    <!-- מסך הגדרות / בית -->
+    <div id="setup-screen" class="card">
+      <h2>התחלת מבחן</h2>
+      <label for="num-questions">מספר שאלות במבחן</label>
+      <input type="number" id="num-questions" value="10" min="1" />
+
+      <label for="difficulty">רמת קושי</label>
+      <select id="difficulty">
+        <option value="all">כל הרמות</option>
+        <option value="easy">קל</option>
+        <option value="medium">בינוני</option>
+        <option value="hard">קשה</option>
+      </select>
+
+      <button id="start-quiz-btn">התחל מבחן</button>
+    </div>
+
+    <!-- מסך הוספת מילים -->
+    <div id="add-words-screen" class="card">
+      <h2>הוספת מילים חדשות</h2>
+      <p style="font-size: 14px; color:#555;">
+        מלא את הפרטים ולחץ על "הוסף מילה". המילים נשמרות במחשב שלך (localStorage).
+      </p>
+      <label for="new-word">מילה בעברית</label>
+      <input type="text" id="new-word" placeholder="לדוגמה: ירח" />
+
+      <label for="new-definition">הסבר / תרגום (אפשר ברוסית, עברית, או כל שפה)</label>
+      <textarea id="new-definition" rows="2" placeholder="לדוגמה: спутник Земли"></textarea>
+
+      <label for="new-mnemonic">הסבר שעוזר לזכור (אסוציאציה, משפט מצחיק וכו') – אופציונלי</label>
+      <textarea id="new-mnemonic" rows="2" placeholder="לדוגמה: כמו слово ‘яркий’ – זורח כמו ירח"></textarea>
+
+      <label for="new-image-url">כתובת לתמונה (אופציונלי)</label>
+      <input type="text" id="new-image-url" placeholder="https://example.com/moon.jpg" />
+
+      <label for="new-difficulty">רמת קושי</label>
+      <select id="new-difficulty">
+        <option value="easy">קל</option>
+        <option value="medium">בינוני</option>
+        <option value="hard">קשה</option>
+      </select>
+
+      <button id="add-word-btn" class="btn-secondary">הוסף מילה</button>
+      <small id="add-word-msg" style="display:block; color:green; min-height:18px;"></small>
+    </div>
+
+    <!-- מסך המבחן -->
+    <div id="quiz-screen" class="card hidden">
+      <div class="question-header">
+        <div id="question-counter"></div>
+        <div id="question-difficulty"></div>
+      </div>
+      <div id="question-content">
+        <div class="word-title" id="question-word"></div>
+        <div id="question-text" style="margin-bottom: 12px; font-size:16px;">
+          בחר את ההסבר הנכון למילה זו:
+        </div>
+        <div class="options" id="options-container"></div>
+      </div>
+      <button id="next-question-btn" class="btn-secondary hidden">לשאלה הבאה</button>
+    </div>
+
+    <!-- מסך התוצאות -->
+    <div id="result-screen" class="card hidden">
+      <h2>תוצאות המבחן</h2>
+      <div class="feedback" id="score-text"></div>
+      <div id="mistakes-section">
+        <h3>מילים שטעית בהן</h3>
+        <div id="mistakes-container"></div>
+      </div>
+      <button id="restart-btn">חזור למסך הראשי</button>
+    </div>
+
+  </div>
+
+  <script>
+    // ---------- נתוני ברירת מחדל ----------
+    const defaultWords = [
+      {
+        id: 1,
+        word: "ירח",
+        definition: "גרם השמיים שמקיף את כדור הארץ",
+        mnemonic: "כמו עיגול לבן בשמיים בלילה",
+        imageUrl: "",
+        difficulty: "easy"
+      },
+      {
+        id: 2,
+        word: "מקפיא",
+        definition: "חלק מהמקרר שבו שומרים דברים קפואים",
+        mnemonic: "מקום שקר בו הכי במטבח",
+        imageUrl: "",
+        difficulty: "easy"
+      },
+      {
+        id: 3,
+        word: "מסוק",
+        definition: "כלי טיס עם רוטור מסתובב במקום כנפיים",
+        mnemonic: "טס מעל הפקקים עם כנפיים מסתובבות",
+        imageUrl: "",
+        difficulty: "medium"
+      },
+      {
+        id: 4,
+        word: "ספרייה",
+        definition: "מקום שבו אפשר לשאול ספרים",
+        mnemonic: "הרבה ספרים בשורות ארוכות",
+        imageUrl: "",
+        difficulty: "easy"
+      },
+      {
+        id: 5,
+        word: "מגירה",
+        definition: "חלק מהריהוט שנפתח ונמשך החוצה לאחסון",
+        mnemonic: "שמים שם גרביים ודברים קטנים",
+        imageUrl: "",
+        difficulty: "easy"
+      },
+      {
+        id: 6,
+        word: "תצפית",
+        definition: "מקום שממנו מסתכלים מרחוק על נוף או על אזור מסוים",
+        mnemonic: "עומדים גבוה ורואים את הכול",
+        imageUrl: "",
+        difficulty: "medium"
+      },
+      {
+        id: 7,
+        word: "עצמאות",
+        definition: "יכולת לפעול לבד בלי עזרה מאחרים",
+        mnemonic: "כמו ילד שמסוגל לעשות שיעורים לבד",
+        imageUrl: "",
+        difficulty: "hard"
+      }
+    ];
+
+    const STORAGE_KEY = "hebrewWords";
+
+    function loadWords() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error("בעיה בקריאת המילים מהאחסון, משתמש בברירת מחדל", e);
+        }
+      }
+      // אם אין, נשתמש ברירת מחדל ונשמור
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultWords));
+      return [...defaultWords];
+    }
+
+    function saveWords(words) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(words));
+    }
+
+    let words = loadWords();
+
+    // ---------- משתני מצב למבחן ----------
+    let quizQuestions = [];
+    let currentQuestionIndex = 0;
+    let correctCount = 0;
+    let answersLog = []; // {question, chosenIndex, correctIndex}
+
+    // Utility: ערבוב מערך
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // בוחר 3 מסיחים שונים
+    function pickDistractors(allWords, correctWordId, needed = 3) {
+      const candidates = allWords.filter(w => w.id !== correctWordId);
+      const shuffled = shuffle(candidates);
+      return shuffled.slice(0, needed);
+    }
+
+    // יצירת שאלות למבחן
+    function createQuiz(difficulty, numQuestions) {
+      let availableWords;
+      if (difficulty === "all") {
+        availableWords = [...words];
+      } else {
+        availableWords = words.filter(w => w.difficulty === difficulty);
+      }
+
+      if (availableWords.length < 4) {
+        alert("צריך לפחות 4 מילים ברמת הקושי שנבחרה כדי ליצור מבחן עם מסיחים.");
+        return null;
+      }
+
+      const shuffledWords = shuffle(availableWords);
+      const selectedWords = shuffledWords.slice(0, Math.min(numQuestions, shuffledWords.length));
+
+      const allWordsForDistractors = (difficulty === "all") ? words : availableWords;
+
+      const questions = selectedWords.map(wordObj => {
+        const distractors = pickDistractors(allWordsForDistractors, wordObj.id, 3);
+        const options = [
+          { text: wordObj.definition, isCorrect: true },
+          ...distractors.map(d => ({ text: d.definition, isCorrect: false }))
+        ];
+        const shuffledOptions = shuffle(options);
+        const correctIndex = shuffledOptions.findIndex(o => o.isCorrect);
+
+        return {
+          wordObj,
+          options: shuffledOptions,
+          correctIndex
+        };
+      });
+
+      return questions;
+    }
+
+    // ---------- הצגת מסכים ----------
+    const setupScreen = document.getElementById("setup-screen");
+    const quizScreen = document.getElementById("quiz-screen");
+    const resultScreen = document.getElementById("result-screen");
+
+    const startQuizBtn = document.getElementById("start-quiz-btn");
+    const nextQuestionBtn = document.getElementById("next-question-btn");
+    const restartBtn = document.getElementById("restart-btn");
+
+    const questionCounterEl = document.getElementById("question-counter");
+    const questionDifficultyEl = document.getElementById("question-difficulty");
+    const questionWordEl = document.getElementById("question-word");
+    const optionsContainer = document.getElementById("options-container");
+    const scoreTextEl = document.getElementById("score-text");
+    const mistakesContainer = document.getElementById("mistakes-container");
+    const mistakesSection = document.getElementById("mistakes-section");
+
+    function showScreen(screen) {
+     setupScreen.classList.add("hidden");
+     quizScreen.classList.add("hidden");
+     resultScreen.classList.add("hidden");
+     document.getElementById("add-words-screen").classList.add("hidden"); // 👈 חדש
+
+    screen.classList.remove("hidden");
+    }
+
+
+    function startQuiz() {
+      const numQuestions = parseInt(document.getElementById("num-questions").value, 10);
+      const difficulty = document.getElementById("difficulty").value;
+
+      if (isNaN(numQuestions) || numQuestions <= 0) {
+        alert("אנא בחר מספר שאלות גדול מ-0");
+        return;
+      }
+
+      const questions = createQuiz(difficulty, numQuestions);
+      if (!questions) return;
+
+      quizQuestions = questions;
+      currentQuestionIndex = 0;
+      correctCount = 0;
+      answersLog = [];
+
+      showScreen(quizScreen);
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      nextQuestionBtn.classList.add("hidden");
+      optionsContainer.innerHTML = "";
+
+      const q = quizQuestions[currentQuestionIndex];
+      const total = quizQuestions.length;
+
+      questionCounterEl.textContent = `שאלה ${currentQuestionIndex + 1} מתוך ${total}`;
+      questionDifficultyEl.textContent = `רמת קושי: ${
+        q.wordObj.difficulty === "easy" ? "קל" :
+        q.wordObj.difficulty === "medium" ? "בינוני" : "קשה"
+      }`;
+
+      questionWordEl.textContent = q.wordObj.word;
+
+      q.options.forEach((opt, index) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.textContent = opt.text;
+        btn.addEventListener("click", () => handleAnswer(index));
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function handleAnswer(chosenIndex) {
+      const q = quizQuestions[currentQuestionIndex];
+      const isCorrect = (chosenIndex === q.correctIndex);
+      const optionButtons = optionsContainer.querySelectorAll("button");
+
+      optionButtons.forEach((btn, index) => {
+        btn.disabled = true;
+        if (index === q.correctIndex) {
+          btn.classList.add("correct");
+        }
+        if (index === chosenIndex && chosenIndex !== q.correctIndex) {
+          btn.classList.add("incorrect");
+        }
+      });
+
+      if (isCorrect) {
+        correctCount++;
+      }
+
+      answersLog.push({
+        question: q,
+        chosenIndex,
+        correctIndex: q.correctIndex
+      });
+
+      nextQuestionBtn.classList.remove("hidden");
+    }
+
+    function goToNextQuestion() {
+      currentQuestionIndex++;
+      if (currentQuestionIndex >= quizQuestions.length) {
+        showResults();
+      } else {
+        renderQuestion();
+      }
+    }
+
+    function showResults() {
+      showScreen(resultScreen);
+
+      const total = quizQuestions.length;
+      const score = Math.round((correctCount / total) * 100);
+      scoreTextEl.textContent = `ענית נכון על ${correctCount} מתוך ${total} שאלות. הציון שלך: ${score} מתוך 100.`;
+
+      // מילים שטעו בהן
+      const mistakenWordsMap = new Map();
+      answersLog.forEach(log => {
+        if (log.chosenIndex !== log.correctIndex) {
+          const w = log.question.wordObj;
+          mistakenWordsMap.set(w.id, w);
+        }
+      });
+
+      mistakesContainer.innerHTML = "";
+      if (mistakenWordsMap.size === 0) {
+        mistakesSection.classList.add("hidden");
+      } else {
+        mistakesSection.classList.remove("hidden");
+        mistakenWordsMap.forEach(w => {
+          const div = document.createElement("div");
+          div.className = "mistake-card";
+
+          const wordEl = document.createElement("div");
+          wordEl.style.fontWeight = "bold";
+          wordEl.style.fontSize = "16px";
+          wordEl.textContent = w.word;
+          div.appendChild(wordEl);
+
+          const defEl = document.createElement("div");
+          defEl.textContent = "הסבר: " + w.definition;
+          div.appendChild(defEl);
+
+          if (w.mnemonic && w.mnemonic.trim() !== "") {
+            const mnEl = document.createElement("div");
+            mnEl.textContent = "טיפ לזכירה: " + w.mnemonic;
+            div.appendChild(mnEl);
+          }
+
+          if (w.imageUrl && w.imageUrl.trim() !== "") {
+            const img = document.createElement("img");
+            img.src = w.imageUrl;
+            img.alt = w.word;
+            div.appendChild(img);
+          }
+
+          mistakesContainer.appendChild(div);
+        });
+      }
+    }
+
+    function restart() {
+      document.getElementById("add-words-screen").classList.remove("hidden"); 
+      showScreen(setupScreen);
+    }
+
+    // ---------- הוספת מילה חדשה ----------
+    const addWordBtn = document.getElementById("add-word-btn");
+    const addWordMsg = document.getElementById("add-word-msg");
+
+    function addNewWord() {
+      const wordInput = document.getElementById("new-word");
+      const defInput = document.getElementById("new-definition");
+      const mnemonicInput = document.getElementById("new-mnemonic");
+      const imgInput = document.getElementById("new-image-url");
+      const diffSelect = document.getElementById("new-difficulty");
+
+      const word = wordInput.value.trim();
+      const definition = defInput.value.trim();
+      const mnemonic = mnemonicInput.value.trim();
+      const imageUrl = imgInput.value.trim();
+      const difficulty = diffSelect.value;
+
+      if (!word || !definition) {
+        addWordMsg.style.color = "red";
+        addWordMsg.textContent = "אנא מלא לפחות מילה והסבר.";
+        return;
+      }
+
+      const newId = Date.now();
+      const newWord = {
+        id: newId,
+        word,
+        definition,
+        mnemonic,
+        imageUrl,
+        difficulty
+      };
+
+      words.push(newWord);
+      saveWords(words);
+
+      wordInput.value = "";
+      defInput.value = "";
+      mnemonicInput.value = "";
+      imgInput.value = "";
+      diffSelect.value = "easy";
+
+      addWordMsg.style.color = "green";
+      addWordMsg.textContent = "המילה נוספה בהצלחה!";
+      setTimeout(() => addWordMsg.textContent = "", 2000);
+    }
+
+    // ---------- אירועים ----------
+    startQuizBtn.addEventListener("click", startQuiz);
+    nextQuestionBtn.addEventListener("click", goToNextQuestion);
+    restartBtn.addEventListener("click", restart);
+    addWordBtn.addEventListener("click", addNewWord);
+  </script>
+</body>
+</html>
